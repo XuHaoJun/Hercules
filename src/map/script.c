@@ -87,7 +87,7 @@ static inline void script_string_buf_addb(struct script_string_buf *buf,uint8 b)
 		buf->size += 512;
 		RECREATE(buf->ptr, char, buf->size);
 	}
-	
+
 	buf->ptr[buf->pos++] = b;
 }
 
@@ -807,19 +807,19 @@ const char* parse_callfunc(const char* p, int require_paren, int is_custom)
 		else { //Nested function call
 			script->syntax.nested_call++;
 			nested_call = true;
-			
+
 			if( script->str_data[func].val == script->buildin_lang_macro_offset ) {
 				script->syntax.lang_macro_active = true;
 				macro = true;
 			}
 		}
-		
+
 		if( !macro ) {
 			// buildin function
 			script->addl(func);
 			script->addc(C_ARG);
 		}
-		
+
 		arg = script->buildin[script->str_data[func].val];
 		if (script->str_data[func].deprecated)
 			DeprecationWarning(p);
@@ -903,17 +903,17 @@ const char* parse_callfunc(const char* p, int require_paren, int is_custom)
 		if( *p != ')' )
 			disp_error_message("parse_callfunc: expected ')' to close argument list",p);
 		++p;
-		
+
 		if( script->str_data[func].val == script->buildin_lang_macro_offset )
 			script->syntax.lang_macro_active = false;
 	}
-	
+
 	if( nested_call )
 		script->syntax.nested_call--;
-	
+
 	if( !script->syntax.nested_call )
 		script->syntax.last_func = -1;
-	
+
 	if( !macro )
 		script->addc(C_FUNC);
 	return p;
@@ -1149,15 +1149,15 @@ bool is_number(const char *p) {
 int script_string_dup(char *str) {
 	size_t len = strlen(str);
 	int pos = script->string_list_pos;
- 
+
 	while( pos+len+1 >= script->string_list_size ) {
 		script->string_list_size += (1024*1024)/2;
 		RECREATE(script->string_list,char,script->string_list_size);
 	}
-	
+
 	safestrncpy(script->string_list+pos, str, len+1);
 	script->string_list_pos += len+1;
-	
+
 	return pos;
 }
 
@@ -1208,7 +1208,7 @@ const char* parse_simpleexpr(const char *p)
 		const char *start_point = p;
 		bool duplicate = true;
 		struct script_string_buf *sbuf = &script->parse_simpleexpr_str;
-		
+
 		do {
 			p++;
 			while( *p && *p != '"' ) {
@@ -1231,19 +1231,19 @@ const char* parse_simpleexpr(const char *p)
 			p++; //'"'
 			p = script->skip_space(p);
 		} while( *p && *p == '"' );
-		
+
 		script_string_buf_addb(sbuf, 0);
-		
+
 		if( !(script->syntax.translation_db && (st = strdb_get(script->syntax.translation_db, sbuf->ptr))) ) {
 			script->addc(C_STR);
-			
+
 			if( script->pos+sbuf->pos >= script->size ) {
 				do {
 					script->size += SCRIPT_BLOCK_SIZE;
 				} while( script->pos+sbuf->pos >= script->size );
 				RECREATE(script->buf,unsigned char,script->size);
 			}
-			
+
 			memcpy(script->buf+script->pos, sbuf->ptr, sbuf->pos);
 			script->pos += sbuf->pos;
 
@@ -1253,19 +1253,19 @@ const char* parse_simpleexpr(const char *p)
 			unsigned int st_cursor = 0;
 
 			script->addc(C_LSTR);
-		
+
 			expand += (sizeof(char*) + sizeof(uint8)) * st->translations;
-			
+
 			while( script->pos+expand >= script->size ) {
 				script->size += SCRIPT_BLOCK_SIZE;
 				RECREATE(script->buf,unsigned char,script->size);
 			}
-			
+
 			*((int *)(&script->buf[script->pos])) = st->string_id;
 			*((uint8 *)(&script->buf[script->pos + sizeof(int)])) = st->translations;
 
 			script->pos += sizeof(int) + sizeof(uint8);
-			
+
 			for(j = 0; j < st->translations; j++) {
 				*((uint8 *)(&script->buf[script->pos])) = RBUFB(st->buf, st_cursor);
 				*((char **)(&script->buf[script->pos+sizeof(uint8)])) = &st->buf[st_cursor + sizeof(uint8)];
@@ -1275,19 +1275,19 @@ const char* parse_simpleexpr(const char *p)
 				st_cursor += sizeof(uint8);
 			}
 		}
-		
+
 		/* When exporting we don't know what is a translation and what isn't */
 		if( script->lang_export_fp && sbuf->pos > 1 ) {//sbuf->pos will always be at least 1 because of the '\0'
 			if( !script->syntax.strings ) {
 				script->syntax.strings = strdb_alloc(DB_OPT_DUP_KEY|DB_OPT_ALLOW_NULL_DATA, 0);
 			}
-			
+
 			if( !strdb_exists(script->syntax.strings,sbuf->ptr) ) {
 				strdb_put(script->syntax.strings, sbuf->ptr, NULL);
 				duplicate = false;
 			}
 		}
-		
+
 		if( script->lang_export_fp && !duplicate &&
 			( ( ( script->syntax.last_func == script->buildin_mes_offset ||
 				 script->syntax.last_func == script->buildin_select_offset ) && !script->syntax.nested_call
@@ -1304,29 +1304,29 @@ const char* parse_simpleexpr(const char *p)
 				else
 					break;
 			}
-			
+
 			while( *line_end != '\n' && *line_end != '\0' )
 				line_end++;
-			
+
 			line_length = (size_t)(line_end - line_start);
-			
+
 			if( line_length > 0 ) {
 				script_string_buf_ensure(lbuf,line_length + 1);
-				
+
 				memcpy(lbuf->ptr, line_start, line_length);
 				lbuf->pos = line_length;
 				script_string_buf_addb(lbuf, 0);
-				
+
 				normalize_name(lbuf->ptr, "\r\n\t ");
 			}
-			
+
 			for(cursor = 0; cursor < sbuf->pos; cursor++) {
 				if( sbuf->ptr[cursor] == '"' )
 					script_string_buf_addb(ubuf, '\\');
 				script_string_buf_addb(ubuf, sbuf->ptr[cursor]);
 			}
 			script_string_buf_addb(ubuf, 0);
-			
+
 			fprintf(script->lang_export_fp, "#: %s\n"
 											"# %s\n"
 											"msgctxt \"%s\"\n"
@@ -1337,11 +1337,11 @@ const char* parse_simpleexpr(const char *p)
 					script->parser_current_npc_name ? script->parser_current_npc_name : "Unknown NPC",
 					ubuf->ptr
 			);
-			
+
 			lbuf->pos = 0;
 			ubuf->pos = 0;
 		}
-		
+
 		sbuf->pos = 0;
 	} else {
 		int l;
@@ -2423,10 +2423,10 @@ struct script_code* parse_script(const char *src,const char *file,int line,int o
 	if( script->parse_cleanup_timer_id == INVALID_TIMER ) {
 		script->parse_cleanup_timer_id = timer->add(timer->gettick() + 10, script->parse_cleanup_timer, 0, 0);
 	}
-	
+
 	if( script->syntax.strings ) /* used only when generating translation file */
 		db_destroy(script->syntax.strings);
-	
+
 	memset(&script->syntax,0,sizeof(script->syntax));
 	script->syntax.last_func = -1;/* as valid values are >= 0 */
 	if( script->parser_current_npc_name ) {
@@ -2822,14 +2822,14 @@ void script_array_ensure_zero(struct script_state *st, struct map_session_data *
 		struct script_array *sa = idb_get(src->arrays, script_getvarid(uid));
 		if (sa) {
 			unsigned int i;
-			
+
 			ARR_FIND(0, sa->size, i, sa->members[i] == 0);
 			if( i != sa->size ) {
 				if( !insert )
 					script->array_remove_member(src,sa,i);
 				return;
 			}
-			
+
 			script->array_add_member(sa,0);
 		} else if (insert) {
 			script->array_update(src,reference_uid(script_getvarid(uid), 0),false);
@@ -2842,10 +2842,10 @@ void script_array_ensure_zero(struct script_state *st, struct map_session_data *
 unsigned int script_array_size(struct script_state *st, struct map_session_data *sd, const char *name, struct reg_db *ref) {
 	struct script_array *sa = NULL;
 	struct reg_db *src = script->array_src(st, sd, name, ref);
-	
+
 	if( src && src->arrays )
 		sa = idb_get(src->arrays, script->search_str(name));
-	
+
 	return sa ? sa->size : 0;
 }
 /**
@@ -2854,25 +2854,25 @@ unsigned int script_array_size(struct script_state *st, struct map_session_data 
 unsigned int script_array_highest_key(struct script_state *st, struct map_session_data *sd, const char *name, struct reg_db *ref) {
 	struct script_array *sa = NULL;
 	struct reg_db *src = script->array_src(st, sd, name, ref);
-	
-	
+
+
 	if( src && src->arrays ) {
 		int key = script->add_word(name);
-		
+
 		script->array_ensure_zero(st,sd,reference_uid(key, 0),ref);
-		
+
 		if( ( sa = idb_get(src->arrays, key) ) ) {
 			unsigned int i, highest_key = 0;
-			
+
 			for(i = 0; i < sa->size; i++) {
 				if( sa->members[i] > highest_key )
 					highest_key = sa->members[i];
 			}
-			
+
 			return sa->size ? highest_key + 1 : 0;
 		}
 	}
-	
+
 	return 0;
 }
 int script_free_array_db(DBKey key, DBData *data, va_list ap) {
@@ -2896,15 +2896,15 @@ void script_array_delete(struct reg_db *src, struct script_array *sa) {
  **/
 void script_array_remove_member(struct reg_db *src, struct script_array *sa, unsigned int idx) {
 	unsigned int i, cursor;
-	
+
 	/* its the only member left, no need to do anything other than delete the array data */
 	if( sa->size == 1 ) {
 		script->array_delete(src,sa);
 		return;
 	}
-	
+
 	sa->members[idx] = UINT_MAX;
-	
+
 	for(i = 0, cursor = 0; i < sa->size; i++) {
 		if( sa->members[i] == UINT_MAX )
 			continue;
@@ -2912,7 +2912,7 @@ void script_array_remove_member(struct reg_db *src, struct script_array *sa, uns
 			sa->members[cursor] = sa->members[i];
 		cursor++;
 	}
-	
+
 	sa->size = cursor;
 }
 /**
@@ -2921,9 +2921,9 @@ void script_array_remove_member(struct reg_db *src, struct script_array *sa, uns
  * @param idx the index of the array member being inserted
  **/
 void script_array_add_member(struct script_array *sa, unsigned int idx) {
-	
+
 	RECREATE(sa->members, unsigned int, ++sa->size);
-	
+
 	sa->members[sa->size - 1] = idx;
 
 }
@@ -2933,7 +2933,7 @@ void script_array_add_member(struct script_array *sa, unsigned int idx) {
  **/
 struct reg_db *script_array_src(struct script_state *st, struct map_session_data *sd, const char *name, struct reg_db *ref) {
 	struct reg_db *src = NULL;
-	
+
 	switch( name[0] ) {
 		/* from player */
 		default: /* char reg */
@@ -2956,13 +2956,13 @@ struct reg_db *script_array_src(struct script_state *st, struct map_session_data
 			}
 			break;
 	}
-	
+
 	if( src ) {
 		if( !src->arrays )
 			src->arrays = idb_alloc(DB_OPT_BASE);
 		return src;
 	}
-	
+
 	return NULL;
 }
 
@@ -2977,7 +2977,7 @@ void script_array_update(struct reg_db *src, int64 num, bool empty) {
 	struct script_array *sa = NULL;
 	int id = script_getvarid(num);
 	unsigned int index = script_getvaridx(num);
-	
+
 	if (!src->arrays) {
 		src->arrays = idb_alloc(DB_OPT_BASE);
 	} else {
@@ -2986,13 +2986,13 @@ void script_array_update(struct reg_db *src, int64 num, bool empty) {
 
 	if( sa ) {
 		unsigned int i;
-		
+
 		/* search */
 		for(i = 0; i < sa->size; i++) {
 			if( sa->members[i] == index )
 				break;
 		}
-		
+
 		/* if existent */
 		if( i != sa->size ) {
 			/* if empty, we gotta remove it */
@@ -3029,7 +3029,7 @@ void script_array_update(struct reg_db *src, int64 num, bool empty) {
  *------------------------------------------*/
 int set_reg(struct script_state* st, TBL_PC* sd, int64 num, const char* name, const void* value, struct reg_db *ref) {
 	char prefix = name[0];
-	
+
 	if( is_string_variable(name) ) {// string variable
 		const char *str = (const char*)value;
 
@@ -3432,7 +3432,7 @@ struct script_state* script_alloc_state(struct script_code* rootscript, int pos,
 	st->oid = oid;
 	st->sleep.timer = INVALID_TIMER;
 	st->npc_item_flag = battle_config.item_enabled_npc;
-	
+
 	if( st->script->instances != USHRT_MAX )
 		st->script->instances++;
 	else {
@@ -3457,11 +3457,11 @@ struct script_state* script_alloc_state(struct script_code* rootscript, int pos,
 void script_free_state(struct script_state* st) {
 	if( idb_exists(script->st_db,st->id) ) {
 		struct map_session_data *sd = st->rid ? map->id2sd(st->rid) : NULL;
-		
+
 		if(st->bk_st) {// backup was not restored
 			ShowDebug("script_free_state: Previous script state lost (rid=%d, oid=%d, state=%d, bk_npcid=%d).\n", st->bk_st->rid, st->bk_st->oid, st->bk_st->state, st->bk_npcid);
 		}
-		
+
 		if(sd && sd->st == st) { //Current script is aborted.
 			if(sd->state.using_fake_npc){
 				clif->clearunit_single(sd->npc_id, CLR_OUTSIGHT, sd->fd);
@@ -4207,15 +4207,15 @@ void run_script_main(struct script_state *st) {
 				int string_id = *((int *)(&st->script->script_buf[st->pos]));
 				uint8 translations = *((uint8 *)(&st->script->script_buf[st->pos+sizeof(int)]));
 				struct map_session_data *lsd = NULL;
-				
+
 				st->pos += sizeof(int) + sizeof(uint8);
-				
+
 				if( (!st->rid || !(lsd = map->id2sd(st->rid)) || !lsd->lang_id) && !map->default_lang_id )
 					script->push_str(stack,C_CONSTSTR,script->string_list+string_id);
 				else {
 					uint8 k, wlang_id = lsd ? lsd->lang_id : map->default_lang_id;
 					int offset = st->pos;
-					
+
 					for(k = 0; k < translations; k++) {
 						uint8 lang_id = *(uint8 *)(&st->script->script_buf[offset]);
 						offset += sizeof(uint8);
@@ -4223,12 +4223,12 @@ void run_script_main(struct script_state *st) {
 							break;
 						offset += sizeof(char*);
 					}
-					
+
 					script->push_str(stack,C_CONSTSTR,
 									 ( k == translations ) ? script->string_list+string_id : *(char**)(&st->script->script_buf[offset]) );
-					
+
 				}
-				
+
 				st->pos += ( ( sizeof(char*) + sizeof(uint8) ) * translations );
 			}
 				break;
@@ -4426,19 +4426,19 @@ void script_cleararray_pc(struct map_session_data* sd, const char* varname, void
 	int key;
 
 	key = script->add_str(varname);
-	
+
 	if( !(src = script->array_src(NULL,sd,varname,NULL) ) )
 		return;
-	
+
 	if( value )
 		script->array_ensure_zero(NULL,sd,reference_uid(key,0),NULL);
-	
+
 	if( !(sa = idb_get(src->arrays, key)) ) /* non-existent array, nothing to empty */
 		return;
-	
+
 	size = sa->size;
 	list = script->array_cpy_list(sa);
-	
+
 	for(i = 0; i < size; i++) {
 		script->set_reg(NULL,sd,reference_uid(key, list[i]),varname,value,NULL);
 	}
@@ -4449,16 +4449,16 @@ void script_cleararray_pc(struct map_session_data* sd, const char* varname, void
 /// @param refcache Pointer to an int variable, which keeps a copy of the reference to varname and must be initialized to 0. Can be NULL if only one element is set.
 void script_setarray_pc(struct map_session_data* sd, const char* varname, uint32 idx, void* value, int* refcache) {
 	int key;
-	
+
 	if( idx >= SCRIPT_MAX_ARRAYSIZE ) {
 		ShowError("script_setarray_pc: Variable '%s' has invalid index '%u' (char_id=%d).\n", varname, idx, sd->status.char_id);
 		return;
 	}
 
 	key = ( refcache && refcache[0] ) ? refcache[0] : script->add_str(varname);
-	
+
 	script->set_reg(NULL,sd,reference_uid(key, idx),varname,value,NULL);
-	
+
 	if( refcache )
 	{// save to avoid repeated script->add_str calls
 		refcache[0] = key;
@@ -4469,23 +4469,23 @@ void script_setarray_pc(struct map_session_data* sd, const char* varname, uint32
  **/
 int script_reg_destroy(DBKey key, DBData *data, va_list ap) {
 	struct script_reg_state *src;
-	
+
 	if( data->type != DB_DATA_PTR )/* got no need for those! */
 		return 0;
-	
+
 	src = DB->data2ptr(data);
-	
+
 	if( src->type ) {
 		struct script_reg_str *p = (struct script_reg_str *)src;
-		
+
 		if( p->value )
 			aFree(p->value);
-		
+
 		ers_free(pc->str_reg_ers,p);
 	} else {
 		ers_free(pc->num_reg_ers,(struct script_reg_num*)src);
 	}
-	
+
 	return 0;
 }
 /**
@@ -4496,10 +4496,10 @@ void script_reg_destroy_single(struct map_session_data *sd, int64 reg, struct sc
 
 	if( data->type ) {
 		struct script_reg_str *p = (struct script_reg_str*)data;
-		
+
 		if( p->value )
 			aFree(p->value);
-		
+
 		ers_free(pc->str_reg_ers,p);
 	} else {
 		ers_free(pc->num_reg_ers,(struct script_reg_num*)data);
@@ -4643,16 +4643,16 @@ void do_final_script(void) {
 
 	if( script->labels != NULL )
 		aFree(script->labels);
-	
+
 	ers_destroy(script->array_ers);
-	
+
 	if( script->generic_ui_array )
 		aFree(script->generic_ui_array);
-	
+
 	script->clear_translations(false);
-	
+
 	script->parser_clean_leftovers();
-	
+
 	if( script->lang_export_file )
 		aFree(script->lang_export_file);
 }
@@ -4662,11 +4662,11 @@ void do_final_script(void) {
  **/
 uint8 script_add_language(const char *name) {
 	uint8 lang_id = script->max_lang_id;
-	
+
 	RECREATE(script->languages, char *, ++script->max_lang_id);
-	
+
 	script->languages[lang_id] = aStrdup(name);
-	
+
 	return lang_id;
 }
 /**
@@ -4682,9 +4682,9 @@ void script_load_translations(void) {
 
 	if (map->minimal) // No translations in minimal mode
 		return;
-	
+
 	script->translation_db = strdb_alloc(DB_OPT_DUP_KEY, NAME_LENGTH*2+1);
-	
+
 	if( script->languages ) {
 		for(i = 0; i < script->max_lang_id; i++)
 			aFree(script->languages[i]);
@@ -4692,31 +4692,31 @@ void script_load_translations(void) {
 	}
 	script->languages = NULL;
 	script->max_lang_id = 0;
-	
+
 	script->add_language("English");/* 0 is default, which is whatever is in the npc files hardcoded (in our case, English) */
-	
+
 	if (libconfig->read_file(&translations_conf, config_filename)) {
 		ShowError("load_translations: can't read '%s'\n", config_filename);
 		return;
 	}
-	
+
 	if( !(translations = libconfig->lookup(&translations_conf, "translations")) ) {
 		ShowError("load_translations: invalid format on '%s'\n",config_filename);
 		return;
 	}
-	
+
 	if( script->string_list )
 		aFree(script->string_list);
-	
+
 	script->string_list = NULL;
 	script->string_list_pos = 0;
 	script->string_list_size = 0;
-	
+
 	size = libconfig->setting_length(translations);
-	
+
 	for(i = 0; i < size; i++) {
 		const char *translation_file = libconfig->setting_get_string_elem(translations, i);
-		
+
 		script->load_translation(translation_file, ++lang_id, &total);
 	}
 
@@ -4726,32 +4726,32 @@ void script_load_translations(void) {
 		DBMap *string_db;
 		struct string_translation *st = NULL;
 		uint32 j = 0;
-		
-		
+
+
 		CREATE(script->translation_buf, char *, total);
 		script->translation_buf_size = total;
-		
+
 		main_iter = db_iterator(script->translation_db);
-		
+
 		for( string_db = dbi_first(main_iter); dbi_exists(main_iter); string_db = dbi_next(main_iter) ) {
 			sub_iter = db_iterator(string_db);
-			
+
 			for( st = dbi_first(sub_iter); dbi_exists(sub_iter); st = dbi_next(sub_iter) ) {
 				script->translation_buf[j++] = st->buf;
 			}
-			
+
 			dbi_destroy(sub_iter);
 		}
-		
+
 		dbi_destroy(main_iter);
 	}
-	
+
 	for(k = 0; k < script->max_lang_id; k++) {
 		if( !strcmpi(script->languages[k],map->default_lang_str) ) {
 			break;
 		}
 	}
-	
+
 	if( k == script->max_lang_id ) {
 		ShowError("load_translations: map server default_language setting '%s' is not a loaded language\n",map->default_lang_str);
 		map->default_lang_id = 0;
@@ -4766,21 +4766,21 @@ void script_load_translations(void) {
 const char * script_get_translation_file_name(const char *file) {
 	static char file_name[200];
 	int i, len = (int)strlen(file), last_bar = -1, last_dot = -1;
-	
+
 	for(i = 0; i < len; i++) {
 		if( file[i] == '/' || file[i] == '\\' )
 			last_bar = i;
 		else if ( file[i] == '.' )
 			last_dot = i;
 	}
-	
+
 	if( last_bar != -1 || last_dot != -1 ) {
 		if( last_bar != -1 && last_dot < last_bar )
 			last_dot = -1;
 		safestrncpy(file_name, file+(last_bar >= 0 ? last_bar+1 : 0), ( last_dot >= 0 ? ( last_bar >= 0 ? last_dot - last_bar : last_dot ) : sizeof(file_name) ));
 		return file_name;
 	}
-	
+
 	return file;
 }
 
@@ -4795,25 +4795,25 @@ void script_load_translation(const char *file, uint8 lang_id, uint32 *total) {
 	size_t i;
 	FILE *fp;
 	struct script_string_buf msgid = { 0 }, msgstr = { 0 };
-	
+
 	if( !(fp = fopen(file,"rb")) ) {
 		ShowError("load_translation: failed to open '%s' for reading\n",file);
 		return;
 	}
-	
+
 	script->add_language(script->get_translation_file_name(file));
 	if( lang_id >= atcommand->max_message_table )
 		atcommand->expand_message_table();
-	
+
 	while(fgets(line, sizeof(line), fp)) {
 		size_t len = strlen(line), cursor = 0;
-		
+
 		if( len <= 1 )
 			continue;
-		
+
 		if( line[0] == '#' )
 			continue;
-		
+
 		if( strncasecmp(line,"msgctxt \"", 9) == 0 ) {
 			msgctxt[0] = '\0';
 			for(i = 9; i < len - 2; i++) {
@@ -4847,14 +4847,14 @@ void script_load_translation(const char *file, uint8 lang_id, uint32 *total) {
 			}
 			script_string_buf_addb(&msgstr,0);
 		}
-		
+
 		if( msgctxt[0] && msgid.pos > 1 && msgstr.pos > 1 ) {
 			size_t msgstr_len = msgstr.pos;
 			unsigned int inner_len = 1 + (uint32)msgstr_len + 1; //uint8 lang_id + msgstr_len + '\0'
-			
+
 			if( strcasecmp(msgctxt, "messages.conf") == 0 ) {
 				int k;
-				
+
 				for(k = 0; k < MAX_MSG; k++) {
 					if( atcommand->msg_table[0][k] && strcmpi(atcommand->msg_table[0][k],msgid.ptr) == 0 ) {
 						if( atcommand->msg_table[lang_id][k] )
@@ -4869,23 +4869,23 @@ void script_load_translation(const char *file, uint8 lang_id, uint32 *total) {
 
 				if( !( string_db = strdb_get(script->translation_db, msgctxt) ) ) {
 					string_db = strdb_alloc(DB_OPT_DUP_KEY, 0);
-					
+
 					strdb_put(script->translation_db, msgctxt, string_db);
 				}
-				
+
 				if( !(st = strdb_get(string_db, msgid.ptr) ) ) {
 					CREATE(st, struct string_translation, 1);
-					
+
 					st->string_id = script->string_dup(msgid.ptr);
-					
+
 					strdb_put(string_db, msgid.ptr, st);
 				}
-				
+
 				RECREATE(st->buf, char, st->len + inner_len);
-				
+
 				WBUFB(st->buf, st->len) = lang_id;
 				safestrncpy((char*)WBUFP(st->buf, st->len + 1), msgstr.ptr, msgstr_len + 1);
-				
+
 				st->translations++;
 				st->len += inner_len;
 			}
@@ -4894,11 +4894,11 @@ void script_load_translation(const char *file, uint8 lang_id, uint32 *total) {
 			translations++;
 		}
 	}
-	
+
 	*total += translations;
-	
+
 	fclose(fp);
-	
+
 	script_string_buf_destroy(&msgid);
 	script_string_buf_destroy(&msgstr);
 
@@ -4913,21 +4913,21 @@ void script_clear_translations(bool reload) {
 
 	if( script->string_list )
 		aFree(script->string_list);
-	
+
 	script->string_list = NULL;
 	script->string_list_pos = 0;
 	script->string_list_size = 0;
-	
+
 	if( script->translation_buf ) {
 		for(i = 0; i < script->translation_buf_size; i++) {
 			aFree(script->translation_buf[i]);
 		}
 		aFree(script->translation_buf);
 	}
-	
+
 	script->translation_buf = NULL;
 	script->translation_buf_size = 0;
-	
+
 	if( script->languages ) {
 		for(i = 0; i < script->max_lang_id; i++)
 			aFree(script->languages[i]);
@@ -4935,11 +4935,11 @@ void script_clear_translations(bool reload) {
 	}
 	script->languages = NULL;
 	script->max_lang_id = 0;
-	
+
 	if( script->translation_db ) {
 		script->translation_db->clear(script->translation_db,script->translation_db_destroyer);
 	}
-	
+
 	if( reload )
 		script->load_translations();
 }
@@ -4949,18 +4949,18 @@ void script_clear_translations(bool reload) {
  **/
 int script_translation_db_destroyer(DBKey key, DBData *data, va_list ap) {
 	DBMap *string_db = DB->data2ptr(data);
-	
+
 	if( db_size(string_db) ) {
 		DBIterator *iter = db_iterator(string_db);
 		struct string_translation *st = NULL;
-		
+
 		for( st = dbi_first(iter); dbi_exists(iter); st = dbi_next(iter) ) {
 			aFree(st);
 		}
-		
+
 		dbi_destroy(iter);
 	}
-		
+
 	db_destroy(string_db);
 	return 0;
 }
@@ -4969,10 +4969,10 @@ int script_translation_db_destroyer(DBKey key, DBData *data, va_list ap) {
  *
  **/
 void script_parser_clean_leftovers(void) {
-	
+
 	if( script->buf )
 		aFree(script->buf);
-	
+
 	script->buf = NULL;
 	script->size = 0;
 
@@ -4980,7 +4980,7 @@ void script_parser_clean_leftovers(void) {
 		script->translation_db->destroy(script->translation_db,script->translation_db_destroyer);
 		script->translation_db = NULL;
 	}
-	
+
 	if( script->syntax.strings ) { /* used only when generating translation file */
 		db_destroy(script->syntax.strings);
 		script->syntax.strings = NULL;
@@ -4995,11 +4995,11 @@ void script_parser_clean_leftovers(void) {
  * Performs cleanup after all parsing is processed
  **/
 int script_parse_cleanup_timer(int tid, int64 tick, int id, intptr_t data) {
-	
+
 	script->parser_clean_leftovers();
 
 	script->parse_cleanup_timer_id = INVALID_TIMER;
-	
+
 	return 0;
 }
 
@@ -5009,7 +5009,7 @@ int script_parse_cleanup_timer(int tid, int64 tick, int id, intptr_t data) {
  *------------------------------------------*/
 void do_init_script(bool minimal) {
 	script->parse_cleanup_timer_id = INVALID_TIMER;
-	
+
 	script->st_db = idb_alloc(DB_OPT_BASE);
 	script->userfunc_db = strdb_alloc(DB_OPT_DUP_KEY,0);
 	script->autobonus_db = strdb_alloc(DB_OPT_DUP_KEY,0);
@@ -5029,7 +5029,7 @@ void do_init_script(bool minimal) {
 		return;
 
 	mapreg->init();
-	
+
 	script->load_translations();
 }
 
@@ -5063,9 +5063,9 @@ int script_reload(void) {
 	atcommand->binding_count = 0;
 
 	db_clear(script->st_db);
-	
+
 	script->clear_translations(true);
-	
+
 	if( script->parse_cleanup_timer_id != INVALID_TIMER ) {
 		timer->delete(script->parse_cleanup_timer_id,script->parse_cleanup_timer);
 		script->parse_cleanup_timer_id = INVALID_TIMER;
@@ -6568,15 +6568,15 @@ BUILDIN(deletearray)
 		st->state = END;
 		return false;// not a variable
 	}
-	
+
 	script->array_ensure_zero(st,NULL,data->u.num,reference_getref(data));
-	
+
 	if ( !(sa = idb_get(src->arrays, id)) ) { /* non-existent array, nothing to empty */
 		return true;// not a variable
 	}
 
 	end = script->array_highest_key(st,sd,name,reference_getref(data));
-	
+
 	if( start >= end )
 		return true;// nothing to free
 
@@ -6584,7 +6584,7 @@ BUILDIN(deletearray)
 		value = (void *)"";
 	else
 		value = (void *)0;
-	
+
 	if( script_hasdata(st,3) ) {
 		unsigned int count = script_getnum(st, 3);
 		if( count > end - start )
@@ -6610,14 +6610,14 @@ BUILDIN(deletearray)
 			list = script->array_cpy_list(sa);
 			size = sa->size;
 			qsort(list, size, sizeof(unsigned int), script_array_index_cmp);
-			
+
 			ARR_FIND(0, size, i, list[i] >= start);
-			
+
 			for( ; i < size && list[i] < start + count; i++ ) {
 				// Clear any entries between start and start+count, if they exist
 				script->set_reg(st, sd, reference_uid(id, list[i]), name, value, reference_getref(data));
 			}
-			
+
 			for( ; i < size && list[i] < end; i++ ) {
 				// Move back count positions any entries between start+count to fill the gaps
 				void* v = script->get_val2(st, reference_uid(id, list[i]), reference_getref(data));
@@ -6631,7 +6631,7 @@ BUILDIN(deletearray)
 		unsigned int *list = NULL, size = 0;
 		list = script->array_cpy_list(sa);
 		size = sa->size;
-		
+
 		for(i = 0; i < size; i++) {
 			if( list[i] >= start ) // Less expensive than sorting it, most likely
 				script->set_reg(st, sd, reference_uid(id, list[i]), name, value, reference_getref(data));
@@ -7411,7 +7411,7 @@ BUILDIN(makeitem)
 	memset(&item_tmp,0,sizeof(item_tmp));
 	item_tmp.nameid = nameid;
 	item_tmp.identify=1;
-	
+
 	map->addflooritem(&item_tmp,amount,m,x,y,0,0,0,0);
 
 	return true;
@@ -8451,7 +8451,7 @@ BUILDIN(successrefitem)
 
 	if (script_hasdata(st, 3))
 		up = script_getnum(st, 3);
-	
+
 	if (num > 0 && num <= ARRAYLENGTH(script->equip))
 		i=pc->checkequip(sd,script->equip[num-1]);
 	if (i >= 0) {
@@ -8586,7 +8586,7 @@ BUILDIN(delequip)
 		pc->delitem(sd,i,1,0,2,LOG_TYPE_SCRIPT);
 		return true;
 	}
-	
+
 	ShowError("script:delequip: no item found in position '%d' for player '%s' (AID:%d/CID:%d).\n", num, sd->status.name,sd->status.account_id, sd->status.char_id);
 	st->state = END;
 	clif->scriptclose(sd, st->oid);
@@ -9006,7 +9006,7 @@ BUILDIN(getgroupid)
 /// end
 BUILDIN(end) {
 	st->state = END;
-	
+
 	/* are we stopping inside a function? */
 	if( st->stack->defsp >= 1 && st->stack->stack_data[st->stack->defsp-1].type == C_RETINFO ) {
 		int i;
@@ -14057,13 +14057,13 @@ BUILDIN(getmapxy)
 		script_pushint(st,-1);
 		return false;
 	}
-	
+
 	if( !is_string_variable(reference_getname(script_getdata(st, 2))) ) {
 		ShowWarning("script: buildin_getmapxy: %s is not a string variable\n",reference_getname(script_getdata(st, 2)));
 		script_pushint(st,-1);
 		return false;
 	}
-	
+
 	if( is_string_variable(reference_getname(script_getdata(st, 3))) ) {
 		ShowWarning("script: buildin_getmapxy: %s is a string variable, should be int\n",reference_getname(script_getdata(st, 3)));
 		script_pushint(st,-1);
@@ -14155,7 +14155,7 @@ BUILDIN(getmapxy)
 	num=st->stack->stack_data[st->start+2].u.num;
 	name=script->get_str(script_getvarid(num));
 	prefix=*name;
-	
+
 	if(not_server_variable(prefix))
 		sd=script->rid2sd(st);
 	else
@@ -14537,7 +14537,7 @@ BUILDIN(equip2)
 		script_pushint(st,0);
 		return true;
 	}
-	
+
 	nameid = script_getnum(st,2);
 	if( (item_data = itemdb->exists(nameid)) == NULL )
 	{
@@ -16695,7 +16695,7 @@ BUILDIN(getvariableofnpc)
 
 	if( !nd->u.scr.script->local.vars )
 		nd->u.scr.script->local.vars = i64db_alloc(DB_OPT_RELEASE_DATA);
-	
+
 	script->push_val(st->stack, C_NAME, reference_getuid(data), &nd->u.scr.script->local);
 	return true;
 }
@@ -16732,7 +16732,7 @@ BUILDIN(warpportal) {
 
 	if( bl->type == BL_NPC )
 		unit->bl2ud2(bl); // ensure nd->ud is safe to edit
-	
+
 	group = skill->unitsetting(bl, AL_WARP, 4, spx, spy, 0);
 	if( group == NULL )
 		return true;// failed
@@ -17677,7 +17677,7 @@ BUILDIN(has_instance) {
 	int16 m;
 	int instance_id = -1;
 	bool type = strcmp(script->getfuncname(st),"has_instance2") == 0 ? true : false;
-	
+
 	str = script_getstr(st, 2);
 
 	if( (m = map->mapname2mapid(str)) < 0 ) {
@@ -17891,7 +17891,7 @@ BUILDIN(instance_check_guild)
 			c++;
 		}
 	}
-		
+
 	if( c < amount )
 		script_pushint(st,0);
 	else
@@ -18619,10 +18619,10 @@ BUILDIN(npcskill) {
 	skill_level = script_getnum(st, 3);
 	stat_point  = script_getnum(st, 4);
 	npc_level   = script_getnum(st, 5);
-	
+
 	if( !(sd = script->rid2sd(st)) )
 		return false;
-	
+
 	nd          = (struct npc_data *)map->id2bl(sd->npc_id);
 
 	if (stat_point > battle_config.max_third_parameter) {
@@ -18729,7 +18729,7 @@ BUILDIN(montransform) {
 		clif->ShowScript(&sd->bl, msg);
 		status_change_end(bl, SC_MONSTER_TRANSFORM, INVALID_TIMER); // Clear previous
 		sc_start2(NULL, bl, SC_MONSTER_TRANSFORM, 100, mob_id, type, tick);
-		
+
 		if (script_hasdata(st, 4))
 			sc_start4(NULL, bl, type, 100, val1, val2, val3, val4, tick);
 	}
@@ -19243,7 +19243,7 @@ BUILDIN(checkbound)
 		return true;
 	} else
 		script_pushint(st,0);
-	
+
 	return true;
 }
 
@@ -20291,7 +20291,7 @@ void script_label_add(int key, int pos) {
  * Sets source-end constants for scripts to play with
  **/
 void script_hardcoded_constants(void) {
-	
+
 	/* server defines */
 	script->set_constant("PACKETVER",PACKETVER,false);
 	script->set_constant("MAX_LEVEL",MAX_LEVEL,false);
@@ -20374,7 +20374,7 @@ void script_hardcoded_constants(void) {
  **/
 unsigned short script_mapindexname2id (struct script_state *st, const char* name) {
 	unsigned short index;
-	
+
 	if( !(index=mapindex->name2id(name)) ) {
 		script->reportsrc(st);
 		return 0;
@@ -20395,7 +20395,7 @@ void script_defaults(void) {
 	script->st_ers = NULL;
 	script->stack_ers = NULL;
 	script->array_ers = NULL;
-	
+
 	script->hq = NULL;
 	script->hqi = NULL;
 	script->hqs = script->hqis = 0;
@@ -20595,6 +20595,7 @@ void script_defaults(void) {
 	script->config.ontouch_name = "OnTouch_";  //ontouch_name (runs on first visible char to enter area, picks another char if the first char leaves)
 	script->config.ontouch2_name = "OnTouch";  //ontouch2_name (run whenever a char walks into the OnTouch area)
 	script->config.onuntouch_name = "OnUnTouch";  //onuntouch_name (run whenever a char walks from the OnTouch area)
+    script->config.item_identify_event_name = "OnPCItemIdentifyEvent";
 
 	// for ENABLE_CASE_CHECK
 	script->calc_hash_ci = calc_hash_ci;
@@ -20617,7 +20618,7 @@ void script_defaults(void) {
 	script->global_casecheck.str_pos = 0;
 	memset(script->global_casecheck.str_hash, 0, sizeof(script->global_casecheck.str_hash));
 	// end ENABLE_CASE_CHECK
-	
+
 	/**
 	 * Array Handling
 	 **/
@@ -20648,5 +20649,5 @@ void script_defaults(void) {
 	script->add_language = script_add_language;
 	script->get_translation_file_name = script_get_translation_file_name;
 	script->parser_clean_leftovers = script_parser_clean_leftovers;
-	
+
 }
